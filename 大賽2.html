@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>電子組態大賽 - Ethersboy 醚樣男子</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #74ebd5, #acb6e5);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        #game-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            width: 600px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        #game-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.3), transparent);
+            transform: rotate(30deg);
+            pointer-events: none;
+        }
+        h1 {
+            color: #333;
+            font-size: 32px;
+            margin-bottom: 20px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+        #timer {
+            font-size: 24px;
+            color: #e74c3c;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        #question {
+            font-size: 22px;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .option {
+            background: #ecf0f1;
+            padding: 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 16px;
+            border: 2px solid #bdc3c7;
+        }
+        .option:hover {
+            background: #dfe6e9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .option.correct {
+            background: #2ecc71;
+            color: white;
+            border-color: #27ae60;
+        }
+        .option.wrong {
+            background: #e74c3c;
+            color: white;
+            border-color: #c0392b;
+        }
+        #result {
+            font-size: 18px;
+            margin: 20px 0;
+            color: #34495e;
+        }
+        #scoreboard {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(236, 240, 241, 0.8);
+            border-radius: 10px;
+        }
+        #scoreboard h2 {
+            margin: 0 0 10px;
+            color: #2980b9;
+        }
+        #ranking {
+            list-style: none;
+            padding: 0;
+            color: #7f8c8d;
+        }
+        #ethersboy {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            font-size: 24px;
+            color: #e67e22;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            background: rgba(255, 255, 255, 0.7);
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h1>電子組態大賽</h1>
+        <div id="timer">剩餘時間: 2:00</div>
+        <div id="question"></div>
+        <div class="options" id="options"></div>
+        <div id="result"></div>
+        <div id="scoreboard">
+            <h2>得分: <span id="score">0</span> 酚</h2>
+            <h3>排行榜</h3>
+            <ol id="ranking"></ol>
+        </div>
+        <div id="ethersboy">Ethersboy 醚樣男子</div>
+    </div>
+
+    <script>
+        const elements = {
+            1: {name: "氫", config: "[He]"},
+            2: {name: "氦", config: "[He]"},
+            3: {name: "鋰", config: "[He] 2s1"},
+            4: {name: "鈹", config: "[He] 2s2"},
+            5: {name: "硼", config: "[He] 2s2 2p1"},
+            6: {name: "碳", config: "[He] 2s2 2p2"},
+            7: {name: "氮", config: "[He] 2s2 2p3"},
+            8: {name: "氧", config: "[He] 2s2 2p4"},
+            9: {name: "氟", config: "[He] 2s2 2p5"},
+            10: {name: "氖", config: "[Ne]"},
+            11: {name: "鈉", config: "[Ne] 3s1"},
+            12: {name: "鎂", config: "[Ne] 3s2"},
+            13: {name: "鋁", config: "[Ne] 3s2 3p1"},
+            14: {name: "矽", config: "[Ne] 3s2 3p2"},
+            15: {name: "磷", config: "[Ne] 3s2 3p3"},
+            16: {name: "硫", config: "[Ne] 3s2 3p4"},
+            17: {name: "氯", config: "[Ne] 3s2 3p5"},
+            18: {name: "氬", config: "[Ar]"},
+            19: {name: "鉀", config: "[Ar] 4s1"},
+            20: {name: "鈣", config: "[Ar] 4s2"},
+            21: {name: "鈧", config: "[Ar] 4s2 3d1"},
+            22: {name: "鈦", config: "[Ar] 4s2 3d2"},
+            23: {name: "釩", config: "[Ar] 4s2 3d3"},
+            24: {name: "鉻", config: "[Ar] 4s1 3d5"},
+            25: {name: "錳", config: "[Ar] 4s2 3d5"},
+            26: {name: "鐵", config: "[Ar] 4s2 3d6"},
+            27: {name: "鈷", config: "[Ar] 4s2 3d7"},
+            28: {name: "鎳", config: "[Ar] 4s2 3d8"},
+            29: {name: "銅", config: "[Ar] 4s1 3d10"},
+            30: {name: "鋅", config: "[Ar] 4s2 3d10"}
+        };
+
+        let score = 0;
+        let timeLeft = 120; // 2分鐘 = 120秒
+        let currentElement;
+        let rankings = JSON.parse(localStorage.getItem('rankings')) || [];
+        let timer;
+
+        function startGame() {
+            nextQuestion();
+            timer = setInterval(updateTimer, 1000);
+        }
+
+        function updateTimer() {
+            timeLeft--;
+            let minutes = Math.floor(timeLeft / 60);
+            let seconds = timeLeft % 60;
+            document.getElementById('timer').textContent = 
+                `剩餘時間: ${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
+            
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }
+
+        function nextQuestion() {
+            const atomicNumber = Math.floor(Math.random() * 30) + 1;
+            currentElement = elements[atomicNumber];
+            document.getElementById('question').textContent = 
+                `請選出 ${currentElement.name} (原子序 ${atomicNumber}) 的電子組態：`;
+            generateOptions();
+            document.getElementById('result').textContent = '';
+        }
+
+        function generateOptions() {
+            const optionsDiv = document.getElementById('options');
+            optionsDiv.innerHTML = '';
+            const correctAnswer = currentElement.config;
+            let options = [correctAnswer];
+
+            // 生成3個錯誤選項
+            while (options.length < 4) {
+                const randomNum = Math.floor(Math.random() * 30) + 1;
+                const randomConfig = elements[randomNum].config;
+                if (!options.includes(randomConfig)) {
+                    options.push(randomConfig);
+                }
+            }
+
+            // 打亂選項
+            options = options.sort(() => Math.random() - 0.5);
+
+            // 創建選項按鈕
+            options.forEach(option => {
+                const div = document.createElement('div');
+                div.className = 'option';
+                div.textContent = option;
+                div.onclick = () => checkAnswer(option);
+                optionsDiv.appendChild(div);
+            });
+        }
+
+        function checkAnswer(selected) {
+            const correctAnswer = currentElement.config;
+            const options = document.querySelectorAll('.option');
+
+            options.forEach(option => {
+                option.onclick = null; // 禁用點擊
+                if (option.textContent === correctAnswer) {
+                    option.classList.add('correct');
+                }
+                if (option.textContent === selected && selected !== correctAnswer) {
+                    option.classList.add('wrong');
+                }
+            });
+
+            if (selected === correctAnswer) {
+                score += 1;
+                document.getElementById('result').textContent = '答對！得1酚';
+                document.getElementById('score').textContent = score;
+            } else {
+                document.getElementById('result').textContent = 
+                    `答錯！正確答案是 ${correctAnswer}，得0酚`;
+            }
+
+            setTimeout(nextQuestion, 1000); // 1秒後進入下一題
+        }
+
+        function endGame() {
+            clearInterval(timer);
+            document.getElementById('question').textContent = '遊戲結束！';
+            document.getElementById('options').innerHTML = '';
+            document.getElementById('result').textContent = `最終得分: ${score} 酚`;
+            
+            rankings.push(score);
+            rankings.sort((a, b) => b - a);
+            rankings = rankings.slice(0, 5); // 保留前5名
+            localStorage.setItem('rankings', JSON.stringify(rankings));
+            updateRanking();
+        }
+
+        function updateRanking() {
+            const rankingList = document.getElementById('ranking');
+            rankingList.innerHTML = '';
+            rankings.forEach((score, index) => {
+                const li = document.createElement('li');
+                li.textContent = `第${index + 1}名: ${score} 酚`;
+                rankingList.appendChild(li);
+            });
+        }
+
+        // 開始遊戲
+        startGame();
+        updateRanking();
+    </script>
+</body>
+</html>
